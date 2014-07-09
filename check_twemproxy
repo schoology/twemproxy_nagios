@@ -1,0 +1,54 @@
+#!/usr/bin/env python
+# vim: set syntax=python
+#
+# This is a simple health check for twemproxy.
+#
+
+import os
+import argparse
+import json
+import time
+
+# Nagios return codes
+STATE_OK=0
+STATE_WARNING=1
+STATE_CRITICAL=2
+STATE_UNKNOWN=3
+
+# parse command line options
+parser = argparse.ArgumentParser(description='Check health of twemproxy.')
+parser.add_argument('--host', default='localhost', help='The hostname of the server to check', dest='host')
+parser.add_argument('--port', default='22222', help='The stats port of the server to check', dest='port')
+args = parser.parse_args()
+
+# load and parse data from twemproxy stats port
+first_raw = os.popen("nc {0} {1}".format(args.host, args.port)).read()
+time.sleep(2)
+second_raw = os.popen("nc {0} {1}".format(args.host, args.port)).read()
+first_run = json.loads(first_raw)
+second_run = json.loads(second_raw)
+
+errors = {}
+error_pools = {}
+# scan data for errors
+for pool, pool_info in second_run.items():
+    if hasattr(pool_info, 'items'):
+        for server, server_info in pool_info.items():
+            if hasattr(server_info, 'items'):
+                connections = int(server_info['server_connections'])
+                requests = int(server_info['requests']) - int(first_run[pool][server]['requests'])
+                if connections <= 0 or requests != 0:
+                    errors[server] = 1
+                    error_pools[pool] = 1
+
+problem = ''
+if error_pools:
+    problem += "error with pools [{0}]\n".format(",".join(error_pools.keys()))
+    problem += "problem with servers: {0}".format(",".join(errors.keys()))
+
+if not problem:
+    print("TWEMPROXY OK : {0}".format(args.host))
+    exit(STATE_OK)
+else:
+    print("TWEMPROXY CRITICAL : {0} {1}".format(args.host, problem))
+    exit(STATE_CRITICAL)
