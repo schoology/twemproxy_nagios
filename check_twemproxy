@@ -8,8 +8,12 @@
 
 import os
 import argparse
-import json
 import time
+
+try:
+    import json
+except ImportError:
+    import simplejson as json
 
 # Nagios return codes
 STATE_OK=0
@@ -24,9 +28,9 @@ parser.add_argument('--port', default='22222', help='The stats port of the serve
 args = parser.parse_args()
 
 # load and parse data from twemproxy stats port
-first_raw = os.popen("nc {0} {1}".format(args.host, args.port)).read()
+first_raw = os.popen("nc %(host)s %(port)s" % { 'host': args.host, 'port': args.port }).read()
 time.sleep(2)
-second_raw = os.popen("nc {0} {1}".format(args.host, args.port)).read()
+second_raw = os.popen("nc %(host)s %(port)s" % { 'host': args.host, 'port': args.port }).read()
 first_run = json.loads(first_raw)
 second_run = json.loads(second_raw)
 
@@ -45,12 +49,12 @@ for pool, pool_info in second_run.items():
 
 problem = ''
 if error_pools:
-    problem += "error with pools [{0}]\n".format(",".join(error_pools.keys()))
-    problem += "problem with servers: {0}".format(",".join(errors.keys()))
+    problem += "error with pools [%s]\n" % ",".join(error_pools.keys())
+    problem += "problem with servers: %s" % ",".join(errors.keys())
 
 if not problem:
-    print("TWEMPROXY OK : {0}".format(args.host))
+    print("TWEMPROXY OK : %s" % args.host)
     exit(STATE_OK)
 else:
-    print("TWEMPROXY CRITICAL : {0} {1}".format(args.host, problem))
+    print("TWEMPROXY CRITICAL : %(host)s %(problem)s" % { 'host': args.host, 'problem': problem })
     exit(STATE_CRITICAL)
