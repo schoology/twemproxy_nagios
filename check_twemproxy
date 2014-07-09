@@ -2,6 +2,8 @@
 # vim: set syntax=python
 #
 # This is a simple health check for twemproxy.
+# This is pretty much a straight port of the ruby version hosted at:
+# https://github.com/wanelo/nagios-checks/blob/master/check_twemproxy
 #
 
 import os
