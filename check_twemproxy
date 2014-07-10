@@ -43,10 +43,13 @@ for pool, pool_info in second_run.items():
         for server, server_info in pool_info.items():
             if hasattr(server_info, 'items'):
                 connections = int(server_info['server_connections'])
-                requests = int(server_info['requests']) - int(first_run[pool][server]['requests'])
-                if connections <= 0 or requests != 0:
-                    errors[server] = 1
-                    error_pools[pool] = 1
+                diff = int(server_info['requests']) - int(first_run[pool][server]['requests'])
+                if connections > 0:
+                    continue
+                if diff == 0:
+                    continue
+                errors[server] = 1
+                error_pools[pool] = 1
 
 problem = ''
 if error_pools:
